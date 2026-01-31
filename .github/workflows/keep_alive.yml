@@ -1,0 +1,29 @@
+name: DecoTV Keep Alive
+
+on:
+  schedule:
+    # 每 3 小时自动运行一次
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake Up Space
+        run: |
+          URL="https://muyedd-joe.hf.space"
+          echo "正在唤醒: $URL"
+          
+          # 发送请求并获取状态码
+          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            "$URL")
+          
+          echo "返回状态码: $STATUS"
+          
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ 唤醒成功！"
+          else
+            echo "❌ 唤醒异常，当前状态码: $STATUS"
+          fi
