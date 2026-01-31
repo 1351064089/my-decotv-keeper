@@ -2,28 +2,39 @@ name: DecoTV Keep Alive
 
 on:
   schedule:
-    # 每 3 小时自动运行一次
-    - cron: '0 */3 * * *'
-  workflow_dispatch: # 允许手动点击运行
+    # 缩短间隔到每 45 分钟一次，因为 HF 现在的检测频率变高了
+    - cron: '*/45 * * * *'
+  workflow_dispatch: # 允许手动运行
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Wake Up Space
+      - name: Wake Up Space with Advanced Interaction
         run: |
           URL="https://muyedd-joe.hf.space"
-          echo "正在唤醒: $URL"
+          echo "正在深度唤醒: $URL"
           
-          # 发送请求并获取状态码
-          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+          # 1. 模拟真实浏览器访问主页并抓取内容（增加权重）
+          # 2. 增加随机延迟，避免被识别为定时机器人
+          sleep $((RANDOM % 30))
+          
+          RESPONSE=$(curl -L -s -w "\n%{http_code}" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" \
+            -H "Referer: https://huggingface.co/" \
+            -H "Accept-Language: en-US,en;q=0.9" \
             "$URL")
+
+          # 提取最后三位状态码
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
           
           echo "返回状态码: $STATUS"
           
-          if [ "$STATUS" -eq 200 ]; then
+          if [ "$STATUS" -eq 200 ] || [ "$STATUS" -eq 302 ]; then
             echo "✅ 唤醒成功！"
           else
             echo "❌ 唤醒异常，当前状态码: $STATUS"
+            # 如果失败，尝试再次访问
+            curl -L -s "$URL" > /dev/null
+            exit 1
           fi
